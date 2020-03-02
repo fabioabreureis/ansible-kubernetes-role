@@ -1,0 +1,31 @@
+- name: Initialize the cluster
+  command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }}/16"
+  tags:
+    - init-cluster
+
+- name: Setup kubeconfig for root user
+  command: "{{ item }}"
+  with_items:
+    - mkdir -p $HOME/.kube
+    - cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    - chown -R $(id -u):$(id -g) $HOME/.kube/config
+  tags:
+    - setup-config 
+
+- name: Install calico pod network
+  become: false
+  command: kubectl create -f https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/calico.yaml
+  when: "{{ sdn  }} == calico"
+  tags:
+    - calico-sdn
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command
+  tags:
+    - register-join 
+
+- name: Copy join command to local file
+  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+  tags:
+    - create-join-script

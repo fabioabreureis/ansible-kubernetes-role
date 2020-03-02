@@ -1,0 +1,48 @@
+---
+- name: Enable firewalld ports for Master
+  firewalld:
+    port: "{{ item }}-{{ item }}/tcp"
+    immediate: true
+    permanent: true
+    state: enabled
+  with_items:
+    - 6443
+    - 10250
+    - 10251
+    - 10252
+    - 10255
+    - 2379
+    - 2380
+  tags:
+    - firewall
+  ignore_errors: true
+  when:
+    - "'k8s-master' in group_names"
+
+
+- name: Enable firewalld for workers
+  firewalld:
+    port: "{{ item }}-{{ item }}/tcp"
+    immediate: true
+    permanent: true
+    state: enabled
+  ignore_errors: true
+  with_items:
+    - 6783
+    - 10250
+    - 10255
+  tags:
+    - firewall
+
+- name: Enable firewalld for workers
+  firewalld:
+    port: 30000-32767/tcp
+    immediate: true
+    permanent: true
+    state: enabled
+  ignore_errors: true
+  tags:
+    - firewall
+
+
+
