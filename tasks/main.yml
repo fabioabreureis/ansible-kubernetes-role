@@ -1,0 +1,77 @@
+---
+- selinux:
+    policy: targeted
+    state: permissive
+
+- command: setenforce 0 
+
+- name: Kubernetes Repository
+  yum_repository:
+    name: Kubernetes
+    description: "Kubernetes test for laboratory"
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    gpgcheck: yes
+    enabled: yes
+    gpgkey:
+      - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+      - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+  tags:
+    - k8s-repo
+
+- name: Enable br_netfilter
+  modprobe:
+    name: br_netfilter
+    state: present
+  tags:
+    - tunning
+
+- name: Improve sysctl 
+  sysctl:
+    name: "{{ item }}"
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_items:
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.bridge.bridge-nf-call-iptables
+    - net.bridge.bridge-nf-call-arptables
+  tags:
+    - tunning 
+
+- name: Install Packages
+  yum:
+    name:
+      - kubeadm
+      - docker
+      - kubelet 
+    state: present
+  tags:
+    - packages
+
+- name: Start and enable services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - kubelet
+    - docker
+  tags:
+    - service
+   
+- name: Disable swap 
+  command: "swapoff -a"
+  tags:
+    - swapoff
+
+- include_tasks: firewall.yaml
+  tags:
+    - firewall
+
+- include_tasks: master.yaml
+  when: "'k8s-master' in group_names"
+
+- include_tasks: worker.yaml
+  when: "'k8s-worker' in group_names"
+

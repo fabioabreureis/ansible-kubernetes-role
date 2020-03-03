@@ -1,0 +1,4 @@
+---
+kube_config_dir: /etc/kubernetes
+sdn: calico
+pod_network_cidr: "192.168.0.0"
